@@ -1,4 +1,0 @@
-1. No
-2. Yes
-3. They differ because data types like ints pass a copy to a function,
-while dictionaries directly modify the original

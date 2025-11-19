@@ -1,4 +1,0 @@
-1.
-To abstract code by reusing common attributes & methods
-2.
-So you can use polymorphism
