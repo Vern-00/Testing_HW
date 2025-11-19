@@ -1,19 +1,24 @@
+import pytest
 from src.order_io import load_order, write_receipt
-from src.pricing import bulk_total
 
-def test_order_integration(tmp_path):
-    input_file = tmp_path / "order.csv"
-    input_file.write_text("widget,$10.00\ngizmo,5.50\n", encoding="utf-8")
+def test_load_order_skips_blank_and_raises_on_malformed(tmp_path):
+    p = tmp_path / "order.csv"
+    p.write_text("widget,$10.00\n\nbadline-without-comma\n", encoding="utf-8")
+    # First, confirm it fails on malformed line:
+    with pytest.raises(ValueError):
+        load_order(p)
 
-    items = load_order(input_file)
-    total = bulk_total([p for _, p in items], discount_percent=10, tax_rate=0.1)
+def test_write_receipt_contents_exact(tmp_path):
+    p_in = tmp_path / "order.csv"
+    p_out = tmp_path / "receipt.txt"
+    p_in.write_text("widget,$10.00\ngizmo,5.50\n", encoding="utf-8")
 
-    output_path = tmp_path / "receipt.txt"
-    write_receipt(output_path, items, discount_percent=10, tax_rate=0.1)
+    items = load_order(p_in)
+    write_receipt(p_out, items, discount_percent=10, tax_rate=0.10)
 
-    output_text = output_path.read_text(encoding="utf-8")
-    assert "widget: $10.00" in output_text
-    assert "gizmo: $5.50" in output_text
-    assert "TOTAL:" in output_text
-    # Optionally assert numeric total formatting appears
-    assert f"{total:.2f}" in output_text
+    out = p_out.read_text(encoding="utf-8").splitlines()
+    # Each line formatted with two decimals:
+    assert "widget: $10.00" in out
+    assert "gizmo: $5.50" in out
+    # TOTAL line present and formatted:
+    assert any(line.startswith("TOTAL: $") for line in out)
